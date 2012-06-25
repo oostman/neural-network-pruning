@@ -1,0 +1,2 @@
+# Module com.example.nn_pruning.widgetset.Nn_pruningWidgetset
+# RPC service class, partial path of RPC policy file
