@@ -2,29 +2,53 @@ package logic;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Random;
 
 public class RunMatrix {
 	
 	private double[][] inputMatrix; 	//inputMatrix is the data matrix
-	private int N_tot;				//N_tot is the number of measurements
-	private int V_tot;				//V_tot is the number of variables	
+	private int N_tot;					//N_tot is the number of measurements
+	private int V_tot;					//V_tot is the number of variables	
 	
-	Double[][] normalizationValues;
+	private Double[][] normalizationValues;
 	private double buildToTestRatio;
 	
-	private Random rand;
+	int N_build;
+	int N_test;
+		
+	public double[][] x_build;
+	public double[][] x_test;
+	public double[][] y_build;
+	public double[][] y_test;
 	
-	public double a;				//a is a parameter for the sample problems
-	public double b;				//b is the signal to noise parameter for the sample problems
-	
-	public RunMatrix()
+    public RunMatrix()
 	{
 		buildToTestRatio = 0.75; // The part of N_tot which is used for build data between 0.5 - 0.9
-		a = 0.5;
-		b = 0.2;
+		
 	}
 	
+    public void NewRun(int outNodes)
+	{
+		this.N_build = (int)(N_tot * buildToTestRatio);
+		this.N_test = N_tot - N_build;
+		
+		/* 
+		 * The following function will shuffle the data set
+		 * so it can be divided into unbiased testing 
+		 * and building sets.
+		 */
+		this.ShuffleDataMatrix();
+		
+		/*
+		 * Turn the inputMatrix into a x (input) and y (output) part
+		 * which in turn are sliced into a build and train part
+		 */
+		x_build = new double[N_build][V_tot - outNodes];
+		x_test = new double[N_test][V_tot - outNodes];
+		y_build = new double[N_build][outNodes];
+		y_test = new double[N_test][outNodes];
+		this.splitInputMatrix(x_build, x_test, y_build, y_test, N_build, outNodes);
+	}
+    
 	public double[][] GetInputMatrix() {
 		return this.inputMatrix;
 	}
@@ -126,89 +150,14 @@ public class RunMatrix {
 			}
 		}
 	}
-	
-	public Double GetNormalizationMax(Integer index)
+		
+	public int GetNumberOfVariables()
 	{
-		return normalizationValues[index][1];
+		return this.V_tot;
 	}
-	
-	public Double GetNormalizationMin(Integer index)
-	{
-		return normalizationValues[index][0];
-	}
-	
-	
-	
-	
-	//TODO: detta hör ej hemma här
-	public void makeSampleProblem(
-			final int sampleProblem //sets a problem to be used
-			){
-		
-		buildToTestRatio = 0.75; // The part of N_tot which is used for build data between 0.5 - 0.9
-		
-		
-		N_tot = 100;
-		boolean noProblem = true;
-		
-		//V_tot it the number of inputs + the output
-		switch(sampleProblem){
-		case 1:
-			V_tot = 4;
-			inputMatrix = new double[N_tot][V_tot];
-			for(Integer i = 0; i<N_tot; i++){
-				//the inputs
-				for(Integer j = 0; j<V_tot-1; j++){
-					inputMatrix[i][j] = rand.nextGaussian();
-				}
-				//y_1 = a * (x_1^2 0.5 * x_1 * x_2) + (1-a) * (0.5*x_2*x_3 + x_3^2) + b*e
-				inputMatrix[i][V_tot-1] = a*( Math.pow(inputMatrix[i][0],2) + 0.5*inputMatrix[i][0]*inputMatrix[i][1] )
-						+ (1-a) * ( 0.5 * inputMatrix[i][1]*inputMatrix[i][2] + Math.pow(inputMatrix[i][2],2) )
-						+ b * rand.nextGaussian();
-			}
-			
-			
-			break;
-		case 2:
-			V_tot = 3;
-			inputMatrix = new double[N_tot][V_tot];
-			for(Integer i = 0; i<N_tot; i++){
-				//the inputs
-				for(Integer j = 0; j<V_tot-1; j++){
-					inputMatrix[i][j] = rand.nextGaussian();
-				}
-				//y_2 = log(x_1 + 4) + sqrt(x_2 + 4) + b*e
-				inputMatrix[i][V_tot-1] = Math.log(inputMatrix[i][0] + 4)
-						+ Math.sqrt(inputMatrix[i][1] + 4)
-						+ b*rand.nextGaussian();
-			}
-								
-			break;
-		case 3:
-			V_tot = 3;
-			inputMatrix = new double[N_tot][V_tot];
-			for(Integer i = 0; i<N_tot; i++){
-				//the inputs
-				for(Integer j = 0; j<V_tot-1; j++){
-					inputMatrix[i][j] = rand.nextGaussian();
-				}
-				//y_3 = -0.5 + 0.2*x_1^2 - 0.1*e^(x_2) + b*e
-				inputMatrix[i][V_tot-1] = -0.5 + 0.2 * Math.pow(inputMatrix[i][0],2)
-						- 0.1 * Math.exp(inputMatrix[i][1])
-						+ b*rand.nextGaussian();
-			}
-			
-			break;
-			
-			//if none of the problems are picked
-		default:
-			System.out.println("Used a non-existing sampleProblem number!");
-			noProblem = false;
-		
-		}
-		normalizeMatrix(-1.0, 1.0);
-		
 
+	public Double[][] GetNormalizationMatrix() {
+		return this.normalizationValues;
 	}
 	
 	

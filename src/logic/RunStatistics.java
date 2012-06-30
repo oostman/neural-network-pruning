@@ -13,6 +13,8 @@ public class RunStatistics {
 	private int totalIterations;	//the total iterations that the progress have to go through
 	private boolean isFinnished;		//a boolean keeping track if the algorithm is finished
 	
+	private Double[][] normalizationValues;
+	
 	public RunStatistics(Integer numberOfNodes, Integer numberOfRuns)
 	{
 		this.progress = 0;
@@ -70,6 +72,44 @@ public class RunStatistics {
 
 	public void IncrementProgress() {
 		this.progress++;
+		
+	}
+	
+	public void RevertNormalizeOnErrors(int V_tot)
+	{
+		this.RevertNormalizeOnError(this.total_all_err, V_tot);
+		this.RevertNormalizeOnError(this.total_all_err_test, V_tot);
+	}
+	
+	/*
+	 * The following code will revert the normalize on a array which represent an column, or for instance the errors
+	 */
+	private void RevertNormalizeOnError(double[] array, int V_tot){
+		double normMin = this.GetNormalizationMin(V_tot);
+		double normMax = this.GetNormalizationMax(V_tot);
+		double min, max; 
+
+		min = this.GetNormalizationMin(V_tot - 1);
+		max = this.GetNormalizationMax(V_tot - 1);
+		//normalize each element in the array
+		for(Integer i = 0; i<this.numberOfNodes - 1; i++){
+			array[i] = array[i] / (normMax-normMin) * (max-min);
+		}
+			
+	}
+	
+	private Double GetNormalizationMax(Integer index)
+	{
+		return normalizationValues[index][1];
+	}
+	
+	private Double GetNormalizationMin(Integer index)
+	{
+		return normalizationValues[index][0];
+	}
+
+	public void SetNormalizationMatrix(Double[][] normalizationMatrix) {
+		this.normalizationValues = normalizationMatrix;
 		
 	}
 

@@ -13,7 +13,9 @@ public class NeuralNetworkData {
 	public Double[][] weights;
 	public Double[][] pruningWeights;
 	
+	public double[][] pruningHiddenLayerOutput;
 	public double[][] hiddenLayerOutput;
+	public double[][] inputs;
 	public Integer[][] weights_left;
 	public Integer[][] bestInputNodes;
 	
@@ -95,31 +97,42 @@ public class NeuralNetworkData {
 					break;
 				}
 			}
-		}
-		
+		}		
 	}
+	
 	
 	/*
 	 * calculates the net input of the hidden nodes
 	 */
-	protected double[][] calcHiddenNodesInput(Double[][] ww, double[][] S_orig , double[][] x_build, int N_build){
-		double[][] inputs = new double[N_build][this.nhid];
+	public void CalculateHiddenNodesInputAndOutput(double[][] x_build, int N_build){
+		this.inputs = new double[N_build][this.nhid];
+		this.hiddenLayerOutput = new double[N_build][nhid + 1];
+		
 		for(Integer i = 0; i<N_build; i++){
-			S_orig[i][0] = 1.0;	//bias
+			this.hiddenLayerOutput[i][0] = 1.0;	//bias
 		}
 		for(Integer i = 0; i<N_build; i++){
 			for(Integer j = 0; j < this.nhid; j++){
-				inputs[i][j] = ww[j][0]; //bias
+				this.inputs[i][j] = this.weights[j][0]; //bias
 				for(Integer k = 1; k < this.nin + 1; k++){
-					inputs[i][j] += ww[j][k] * x_build[i][k-1];
+					this.inputs[i][j] += this.weights[j][k] * x_build[i][k-1];
 				}
-				S_orig[i][j+1] = 1/(1+Math.exp(-inputs[i][j]));
+				this.hiddenLayerOutput[i][j+1] = 1/(1+Math.exp( -this.inputs[i][j]));
 			}
 		}
-		return inputs;
+
 	}
 	
-
+	/*
+	 * calculate the modified net output of the hidden nodes
+	 */
+	public void CalculateModifiedHiddenNodesOutput(double[][] x_build, int N_build, int i, int j){
+		double[][] input_new = new double[N_build][this.getNhid()];
+		for(Integer k = 0; k < N_build; k++){
+			input_new[k][i] = inputs[k][i] - this.weights[i][j]*x_build[k][j-1]; //old weight
+			this.pruningHiddenLayerOutput[k][i+1] = 1/(1+Math.exp(-input_new[k][i]));
+		}
+	}
 	
 	/*
 	 * Fills a matrix with the preferred value
@@ -135,10 +148,22 @@ public class NeuralNetworkData {
 	}
 	
 	/*
-	 * clones a matrix in a way that the second matrix does not point at the first one --Duplicate
+	 * clones a matrix in a way that the second matrix does not point at the first one
 	 */
 	private Double[][] cloneMatrix(final Double[][] matrix, final int row, final int col){
 		Double[][] newMatrix = new Double[row][col];
+		for(Integer j=0; j<row; j++){
+			for(Integer i=0; i<col; i++){
+				newMatrix[j][i] = matrix[j][i];
+			}
+		}
+		return newMatrix;
+	}
+	/*
+	 * clones a matrix in a way that the second matrix does not point at the first one
+	 */
+	private double[][] cloneMatrix(final double[][] matrix, final int row, final int col){
+		double[][] newMatrix = new double[row][col];
 		for(Integer j=0; j<row; j++){
 			for(Integer i=0; i<col; i++){
 				newMatrix[j][i] = matrix[j][i];
@@ -156,4 +181,11 @@ public class NeuralNetworkData {
 		
 	}
 
+	public void ResetWeightsAndHiddenLayerOutputs(int N_build) {
+		this.pruningWeights = cloneMatrix(this.weights, this.getNhid(), this.getNin() + 1);
+		this.pruningHiddenLayerOutput = cloneMatrix(this.hiddenLayerOutput, N_build, this.getNhid() + 1);
+		
+	}
+
+		
 }
