@@ -100,39 +100,28 @@ public class pruning_logic{
 			
 			Matrix YbMatrix = new Matrix(runMatrix.y_build);
 			
-			neuralNetworkData.Init();			
+			neuralNetworkData.Init();
 			
-			//Determine the output from the hidden layer
-			neuralNetworkData.hiddenLayerOutput = hiddenLayerOutput(neuralNetworkData.weights, runMatrix.x_build, runMatrix.N_build);
-			
+			neuralNetworkData.CalculateHiddenNodesInputAndOutput(runMatrix.x_build, runMatrix.N_build);
+						
 			/*
 			 * starts the pruning stage
 			 */
-			
-			//weights_left is a matrix keeping track on which weights that are left, 1 means that an weight exists
-			
+						
 			//nodes_left is the vector keeping track on which hidden nodes that are still being used, 1 means it is used
 			Integer[] nodes_left = (Integer[]) fillArray(neuralNetworkData.getNhid(),1);
-			
-			//the weight matrix i cloned into the ww, matrix ... for no apparent reason
-		//--Double[][] ww = cloneMatrix(neuralNetworkData.weights, neuralNetworkData.getNhid(), neuralNetworkData.getNin() + 1);
-						
+									
 			//number of weights in lower layer
 			int numberOfWeights = neuralNetworkData.getNumberOfNodes();
 			
 			//err is the current error and err_min is the smallest error
 			double err_min, err;
 			int i_min = 0, j_min = 0;
+								
+			Matrix upperLayerWeights_min = null, upperLayerWeights = null;
 			
-			
-			
-			Matrix W_min = null, W = null;
-			
-			int helthyColNode = 0;
 			// the loop that eliminates the weights one at a time until there is only one weight left
 			while(numberOfWeights > 1){
-				
-				neuralNetworkData.SaveBestInputNodes(numberOfWeights);
 				
 				if(cancelPruning){
 					runStatistics.CancelRun();
@@ -140,7 +129,7 @@ public class pruning_logic{
 				}
 				err_min = 10000.1;
 				err = 10000.0;
-				W_min = null;
+				upperLayerWeights_min = null;
 				
 				neuralNetworkData.CalculateHiddenNodesInputAndOutput(runMatrix.x_build, runMatrix.N_build);
 								
@@ -160,28 +149,23 @@ public class pruning_logic{
 							
 							neuralNetworkData.CalculateModifiedHiddenNodesOutput(runMatrix.x_build, runMatrix.N_build, i, j);
 													
-														/* 
-							 * Selects the columns corresponding to the 
-							 * connected hidden nodes.
-							 */
-							helthyColNode = numberOfHealthyRows(neuralNetworkData.pruningWeights);
-							double[][] sss = removeDeadColsHidNodesInput(neuralNetworkData.pruningHiddenLayerOutput, neuralNetworkData.pruningWeights, runMatrix.N_build, helthyColNode);
-
 							//Solve the upper layer weights by least-squares. 
-							Matrix A = new Matrix(sss);
+							Matrix hiddenLayerOutput = neuralNetworkData.GetConnectedHiddenLayerOutputs(runMatrix.N_build);
 							try
 							{
-								W = A.solve(YbMatrix);
+								upperLayerWeights = hiddenLayerOutput.solve(YbMatrix);
 							}
 							catch(Exception e){
-								printMatrix(neuralNetworkData.pruningHiddenLayerOutput, runMatrix.N_build, helthyColNode+1);
+								/*printMatrix(neuralNetworkData.pruningHiddenLayerOutput, runMatrix.N_build, helthyColNode+1);
 								System.out.println("\n"+helthyColNode);
-								W = A.solve(YbMatrix);
+								W = A.solve(YbMatrix);*/
+								
+								System.out.println("stuff failed");
 							}
 							/*
 							 * the residuals and error
 							 */
-							Matrix Y_hat = A.times(W);
+							Matrix Y_hat = hiddenLayerOutput.times(upperLayerWeights);
 							err = ( YbMatrix.minus(Y_hat).norm2() ) /Math.sqrt(runMatrix.N_build);
 							
 						}//else loop ends here
@@ -190,7 +174,7 @@ public class pruning_logic{
 							err_min = err;
 							i_min = i;
 							j_min = j;
-							W_min = W;
+							upperLayerWeights_min = upperLayerWeights;
 							
 						}
 					}
@@ -198,8 +182,8 @@ public class pruning_logic{
 				//one weight has been removed ...
 				numberOfWeights--;
 				
-				neuralNetworkData.weights[i_min][j_min] = 0.0; 		//removing the least helping weight
-				neuralNetworkData.weights_left[i_min][j_min-1] = 0;
+				neuralNetworkData.RemoveWeight(i_min, j_min);
+				neuralNetworkData.SaveBestInputNodes(numberOfWeights); //belongs to statistics
 				
 				//test if there are any non-zero connections for the i_min:th hidden node
 				nodes_left[i_min] = testForNonZeroConnections(neuralNetworkData.weights_left, i_min);
@@ -210,7 +194,7 @@ public class pruning_logic{
 				/*
 				 * Evaluate the model on the test data //y_test = new double[N_test][nout]
 				 */
-				double[][] y_test_hat = modelOnTheTestData(runMatrix.N_test, neuralNetworkData.weights, nodes_left, W_min, runMatrix.x_test);
+				double[][] y_test_hat = modelOnTheTestData(runMatrix.N_test, neuralNetworkData.lowerWeights, nodes_left, upperLayerWeights_min, runMatrix.x_test);
 				
 				Matrix Y_test_hat = new Matrix(y_test_hat);
 				Matrix Y_test_matrix = new Matrix(runMatrix.y_test);
@@ -223,75 +207,9 @@ public class pruning_logic{
 			// TODO: write status? System.out.println("one pruning is done progress: "+progress+"/"+totalIterations);
 
 		}
+		
 	}	
-	
-	
-	
-	/*
-	 * Determinate the output from the hidden layers inside of the build set.
-	 */
-	protected double[][] hiddenLayerOutput(Double[][] weights, double[][] x_build, int N_build){
-		Double[] input = new Double[neuralNetworkData.getNhid()];
-		double[][] output = new double[N_build][neuralNetworkData.getNhid() + 1];
-		for(Integer i = 0; i<N_build; i++){
-			output[i][0] = 1.0;	//bias
-		}
-		for(Integer i = 0; i<N_build; i++){
-			for(Integer j = 0; j < neuralNetworkData.getNhid(); j++){
-				input[j] = weights[j][0]; //bias
-				for(Integer k = 1; k < neuralNetworkData.getNin() + 1; k++){
-					input[j] += weights[j][k] * x_build[i][k-1]; //i ex är det x(i,k-1);
-				}
-				//hidden node outputs with the weight 1 - true?
-				output[i][j+1] = 1/(1+Math.exp(-input[j]));
-			}
-		}
-		return output;
-	}
-	
-	
-	
-	/*
-	 * Calculates how many healthy rows there are in www
-	 */
-	protected int numberOfHealthyRows(Double[][] www){
-		int tempsize = 0;
-		for(Integer k = 0; k < neuralNetworkData.getNhid(); k++){
-			for(Integer l = 1; l<neuralNetworkData.getNin() + 1; l++){				// l = 0 zero is the bias
-				if(www[k][l] != 0){
-					tempsize++;
-					break;
-				}
-			}
 			
-		}
-		return tempsize;
-	}
-	
-	/*
-	 * Removes the "dead" columns from the Hidden node outputs, 
-	 * i.e. if one node is eliminated the input matrix should be one column smaller
-	 */
-	protected double[][] removeDeadColsHidNodesInput(double[][] hidNodOutput, Double[][] www, int N_build, int tempsize){
-		double[][] sss = new double[N_build][tempsize+1]; //tempsize + 1, since my s includes an bias column
-		for(Integer m = 0; m < N_build; m++){
-			sss[m][0] = hidNodOutput[m][0];
-		}
-		int temp = 1;
-		for(Integer k = 0; k < neuralNetworkData.getNhid(); k++){
-			for(Integer l = 1; l<neuralNetworkData.getNin()+1; l++){				// l = 0 zero is the bias
-				if(www[k][l] != 0){
-					for(Integer m = 0; m < N_build; m++){
-						sss[m][temp] = hidNodOutput[m][k+1];
-					}
-					temp++;
-					break;
-				}
-			}
-		}
-		return sss;
-	}
-	
 	/*
 	 * test if there are any non-zero connections for the i_min:th hidden node
 	 */
@@ -428,6 +346,7 @@ public class pruning_logic{
 		Integer[] emptyArray = new Integer[neuralNetworkData.getNumberOfNodes()];
 		return emptyArray;
 	}
+	/*
 	private void printMatrix(final double[][] matrix, final int row, final int col){
 		for(Integer i = 0; i<row; i++){
 			System.out.println("");
@@ -435,7 +354,7 @@ public class pruning_logic{
 				System.out.print(matrix[i][j]+" ");
 			}
 		}
-	}
+	}*/
 	/*
 	private void printMatrix(final Object[][] matrix, final int row, final int col){
 		System.out.print("\n vikten");

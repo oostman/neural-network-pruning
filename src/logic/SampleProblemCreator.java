@@ -19,7 +19,6 @@ public class SampleProblemCreator {
 		this.runMatrix = new RunMatrix();
 	}
 	
-	//TODO: detta hör ej hemma här
 	public RunMatrix MakeSampleProblem(final int sampleProblem) throws Exception
 	{
 		

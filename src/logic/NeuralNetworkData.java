@@ -2,6 +2,8 @@ package logic;
 
 import java.util.Random;
 
+import Jama.Matrix;
+
 public class NeuralNetworkData {
 	private int nin; 				// Number of input nodes
 	private int nout; 				//Number of outputs A guess since, I do not know what this is good for
@@ -9,9 +11,9 @@ public class NeuralNetworkData {
 	
 	private Random rand;
 	
-	public Double[][] origWeights;
-	public Double[][] weights;
-	public Double[][] pruningWeights;
+	public Double[][] origLowerWeights;
+	public Double[][] lowerWeights;
+	public Double[][] pruningLowerWeights;
 	
 	public double[][] pruningHiddenLayerOutput;
 	public double[][] hiddenLayerOutput;
@@ -60,12 +62,12 @@ public class NeuralNetworkData {
 
 	public void Init() {
 		//Setup the lower-layers weights as random gaussian values, with mean 1 and variance 2
-		this.weights = initWeights();
+		this.lowerWeights = initWeights();
 		
 		this.weights_left = fillMatrix(this.nhid, this.nin, 1);
 		
 		//the best inputs nodes at all different weights left
-		this.bestInputNodes = fillMatrix(this.getNumberOfNodes(), this.nhid, 0);
+		this.bestInputNodes = fillMatrix(this.getNumberOfNodes(), this.nin, 0);
 		
 	}
 	
@@ -81,25 +83,29 @@ public class NeuralNetworkData {
 			}
 		}
 		
-		this.origWeights = cloneMatrix(weights, this.nhid, this.nin + 1);
+		this.origLowerWeights = cloneMatrix(weights, this.nhid, this.nin + 1);
 		return weights;
 	}
 	
 
+	public void RemoveWeight(int i, int j) {
+		this.lowerWeights[i][j] = 0.0; 		//removing the least helping weight
+		this.weights_left[i][j-1] = 0;
+	}
+	
 	/*
 	 * test if there are any non-zero connections for the i_min:th hidden node
 	 */
 	public void SaveBestInputNodes(int numberOfWeightsLeft){
 		for(Integer i = 0; i < nin; i++){
 			for(Integer j = 0; j < nhid; j++){
-				if(weights_left[j][i] != 0){
-					bestInputNodes[numberOfWeightsLeft-1][i] += 1;
+				if(this.weights_left[j][i] != 0){
+					bestInputNodes[numberOfWeightsLeft][i] += 1;
 					break;
 				}
 			}
 		}		
 	}
-	
 	
 	/*
 	 * calculates the net input of the hidden nodes
@@ -113,9 +119,9 @@ public class NeuralNetworkData {
 		}
 		for(Integer i = 0; i<N_build; i++){
 			for(Integer j = 0; j < this.nhid; j++){
-				this.inputs[i][j] = this.weights[j][0]; //bias
+				this.inputs[i][j] = this.lowerWeights[j][0]; //bias
 				for(Integer k = 1; k < this.nin + 1; k++){
-					this.inputs[i][j] += this.weights[j][k] * x_build[i][k-1];
+					this.inputs[i][j] += this.lowerWeights[j][k] * x_build[i][k-1];
 				}
 				this.hiddenLayerOutput[i][j+1] = 1/(1+Math.exp( -this.inputs[i][j]));
 			}
@@ -127,9 +133,9 @@ public class NeuralNetworkData {
 	 * calculate the modified net output of the hidden nodes
 	 */
 	public void CalculateModifiedHiddenNodesOutput(double[][] x_build, int N_build, int i, int j){
-		double[][] input_new = new double[N_build][this.getNhid()];
+		double[][] input_new = new double[N_build][this.nhid];
 		for(Integer k = 0; k < N_build; k++){
-			input_new[k][i] = inputs[k][i] - this.weights[i][j]*x_build[k][j-1]; //old weight
+			input_new[k][i] = inputs[k][i] - this.lowerWeights[i][j]*x_build[k][j-1]; //old weight
 			this.pruningHiddenLayerOutput[k][i+1] = 1/(1+Math.exp(-input_new[k][i]));
 		}
 	}
@@ -173,19 +179,68 @@ public class NeuralNetworkData {
 	}
 
 	public boolean IsWeightAlreadyEliminated(Integer i, Integer j) {
-		return this.weights[i][j] == 0;
+		return this.lowerWeights[i][j] == 0;
 	}
 
 	public void PruneOneWeight(Integer i, Integer j) {
-		this.pruningWeights[i][j] = 0.0;
+		this.pruningLowerWeights[i][j] = 0.0;
 		
 	}
 
 	public void ResetWeightsAndHiddenLayerOutputs(int N_build) {
-		this.pruningWeights = cloneMatrix(this.weights, this.getNhid(), this.getNin() + 1);
+		this.pruningLowerWeights = cloneMatrix(this.lowerWeights, this.getNhid(), this.getNin() + 1);
 		this.pruningHiddenLayerOutput = cloneMatrix(this.hiddenLayerOutput, N_build, this.getNhid() + 1);
 		
 	}
 
+	public Matrix GetConnectedHiddenLayerOutputs(int n_build) {
 		
+		double[][] sss = RemoveDeadColsHidNodesOutput(this.pruningHiddenLayerOutput, this.pruningLowerWeights, n_build);
+
+		return new Matrix(sss);
+	}
+	
+	/*
+	 * Removes the "dead" columns from the Hidden node outputs, 
+	 * i.e. if one node is eliminated the input matrix should be one column smaller
+	 */
+	protected double[][] RemoveDeadColsHidNodesOutput(double[][] hidNodOutput, Double[][] www, int N_build){
+		int helthyColNode = numberOfHealthyRows(this.pruningLowerWeights);
+		double[][] sss = new double[N_build][helthyColNode + 1]; //helthyColNode + 1, since my hidNodOutput includes an bias column
+		
+		for(Integer m = 0; m < N_build; m++){
+			sss[m][0] = hidNodOutput[m][0];
+		}
+		int temp = 1;
+		for(Integer k = 0; k < this.nhid; k++){
+			for(Integer l = 1; l<this.nin+1; l++){				// l = 0 zero is the bias
+				if(www[k][l] != 0){
+					for(Integer m = 0; m < N_build; m++){
+						sss[m][temp] = hidNodOutput[m][k+1];
+					}
+					temp++;
+					break;
+				}
+			}
+		}
+		return sss;
+	}	
+	/*
+	 * Calculates how many healthy rows there are in www
+	 */
+	protected int numberOfHealthyRows(Double[][] www){
+		int tempsize = 0;
+		for(Integer k = 0; k < this.nhid; k++){
+			for(Integer l = 1; l<this.nin + 1; l++){				// l = 0 zero is the bias
+				if(www[k][l] != 0){
+					tempsize++;
+					break;
+				}
+			}
+			
+		}
+		return tempsize;
+	}
+
+			
 }
