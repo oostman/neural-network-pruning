@@ -19,7 +19,7 @@ public class NeuralNetworkData {
 	public double[][] hiddenLayerOutput;
 	public double[][] inputs;
 	public Integer[][] weights_left;
-	public Integer[][] bestInputNodes;
+	public Integer[][] bestInputNodesForRun;
 	
 	public NeuralNetworkData()
 	{
@@ -67,7 +67,7 @@ public class NeuralNetworkData {
 		this.weights_left = fillMatrix(this.nhid, this.nin, 1);
 		
 		//the best inputs nodes at all different weights left
-		this.bestInputNodes = fillMatrix(this.getNumberOfNodes(), this.nin, 0);
+		this.bestInputNodesForRun = fillMatrix(this.getNumberOfNodes(), this.nin, 0);
 		
 	}
 	
@@ -100,7 +100,7 @@ public class NeuralNetworkData {
 		for(Integer i = 0; i < nin; i++){
 			for(Integer j = 0; j < nhid; j++){
 				if(this.weights_left[j][i] != 0){
-					bestInputNodes[numberOfWeightsLeft][i] += 1;
+					bestInputNodesForRun[numberOfWeightsLeft][i] += 1;
 					break;
 				}
 			}

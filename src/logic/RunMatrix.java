@@ -65,7 +65,6 @@ public class RunMatrix {
 		N_tot = _N_tot;
 		V_tot = _V_tot;
 			
-		//printMatrix(inputMatrix,N_tot,V_tot);
 		normalizeMatrix(-1.0, 1.0);			
 	}
 	
@@ -94,7 +93,7 @@ public class RunMatrix {
 		return tempMatrix;
 	}
 	
-	protected void normalizeMatrix(double normMin, double normMax)
+	private void normalizeMatrix(double normMin, double normMax)
 	{
 		normalizationValues = new Double[V_tot+1][2];
 		normalizationValues[V_tot][0] = normMin;
@@ -126,7 +125,7 @@ public class RunMatrix {
 	 * Turn the inputMatrix into a x (input) and y (output) part
 	 * which in turn are sliced into a build and train part
 	 */
-	protected void splitInputMatrix(double[][] x_build, double[][] x_test, double[][] y_build, double[][] y_test, int N_build, int outNodes){
+	private void splitInputMatrix(double[][] x_build, double[][] x_test, double[][] y_build, double[][] y_test, int N_build, int outNodes){
 		
 		//giving the values to X
 		for(int i = 0; i < V_tot - outNodes; i++){

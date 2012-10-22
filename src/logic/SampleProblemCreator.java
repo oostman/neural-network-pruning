@@ -85,7 +85,7 @@ public class SampleProblemCreator {
 		
 		runMatrix.setInputMatrix(inputMatrix, N_tot, V_tot);
 		
-		runMatrix.normalizeMatrix(-1.0, 1.0);
+		//runMatrix.normalizeMatrix(-1.0, 1.0);
 		
 		
 		return runMatrix;

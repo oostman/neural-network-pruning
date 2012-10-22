@@ -75,7 +75,7 @@ public class pruning_logic{
 			//the errors for each pruning need to be initialized here since nhid/nin can change after the constructor
 			//the error at all_err[0] will be the error for one weight ... and so on
 			
-			runStatistics = new RunStatistics(neuralNetworkData.getNumberOfNodes(), numberOfRuns);
+			runStatistics = new RunStatistics(neuralNetworkData.getNumberOfNodes(), neuralNetworkData.getNin(), numberOfRuns);
 			
 			for(int i = 0; i < numberOfRuns; i++){
 				//perform the pruning
@@ -199,11 +199,13 @@ public class pruning_logic{
 				Matrix Y_test_hat = new Matrix(y_test_hat);
 				Matrix Y_test_matrix = new Matrix(runMatrix.y_test);
 				// should be saved as 0,1,2,3, ....
-				runStatistics.all_err_test[numberOfWeights - 1] = ( Y_test_matrix.minus(Y_test_hat).norm2() ) /Math.sqrt(runMatrix.N_test);				
+				
+				double testError = ( Y_test_matrix.minus(Y_test_hat).norm2() ) /Math.sqrt(runMatrix.N_test);				
+				runStatistics.StoreTestErrorFor(testError, numberOfWeights);
 				
 			}//the master while loop ends
 			
-			
+			runStatistics.StoreBestNodesForRun(neuralNetworkData.bestInputNodesForRun);
 			// TODO: write status? System.out.println("one pruning is done progress: "+progress+"/"+totalIterations);
 
 		}
@@ -293,14 +295,8 @@ public class pruning_logic{
 	public double[] getTotal_all_err() {
 		return runStatistics.total_all_err;
 	}
-	public void setTotal_all_err(double[] _total_all_err) {
-		runStatistics.total_all_err = _total_all_err;
-	}
 	public double[] getTotal_all_err_test() {
 		return runStatistics.total_all_err_test;
-	}
-	public void setTotal_all_err_test(double[] _total_all_err_test) {
-		runStatistics.total_all_err_test = _total_all_err_test;
 	}
 	public int getNumberOfRuns() {
 		return numberOfRuns;
@@ -338,10 +334,9 @@ public class pruning_logic{
 		System.out.println("\n Pruning was canceled");
 	}
 	
-	
 	public Integer[] getBestInputNodes(int numberOfWeightsLeft) {
 		if(numberOfWeightsLeft <= neuralNetworkData.getNumberOfNodes()){
-			return neuralNetworkData.bestInputNodes[numberOfWeightsLeft-1];
+			return runStatistics.bestInputNodesTotal[numberOfWeightsLeft-1];
 		}
 		Integer[] emptyArray = new Integer[neuralNetworkData.getNumberOfNodes()];
 		return emptyArray;

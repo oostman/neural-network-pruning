@@ -2,11 +2,13 @@ package logic;
 
 public class RunStatistics {
 
-	public double[] all_err;
-	public double[] all_err_test;
+	public Integer[][] bestInputNodesTotal;
+	private double[] all_err;
+	private double[] all_err_test;
 	public double[] total_all_err;
 	public double[] total_all_err_test;
 	Integer numberOfNodes;
+	Integer numberOfInputNodes;
 	Integer numberOfRuns;
 	
 	private int progress;           //an integer telling the progress of the pruning
@@ -15,10 +17,11 @@ public class RunStatistics {
 	
 	private Double[][] normalizationValues;
 	
-	public RunStatistics(Integer numberOfNodes, Integer numberOfRuns)
+	public RunStatistics(Integer numberOfNodes, Integer numberOfInputNodes, Integer numberOfRuns)
 	{
 		this.progress = 0;
 		this.numberOfNodes = numberOfNodes;
+		this.numberOfInputNodes = numberOfInputNodes;
 		this.numberOfRuns = numberOfRuns;
 		Integer numberOfNodesToEliminate = numberOfNodes - 1;
 		
@@ -35,11 +38,17 @@ public class RunStatistics {
 		totalIterations -= 1;
 		totalIterations *= numberOfRuns;
 		isFinnished = false;
+		
+		bestInputNodesTotal = new MatrixHelper().FillMatrix(numberOfNodes, numberOfInputNodes, 0);
 	}
 
 	public void StoreMinErrorFor(double err_min, int numberOfWeights) {
 		this.all_err[numberOfWeights - 1] = err_min;
-		
+	}
+
+
+	public void StoreTestErrorFor(double testError, int numberOfWeights) {
+		this.all_err_test[numberOfWeights - 1] = testError;
 	}
 	
 	public void AddLastPruningRunToTotalStatistics()
@@ -110,6 +119,17 @@ public class RunStatistics {
 
 	public void SetNormalizationMatrix(Double[][] normalizationMatrix) {
 		this.normalizationValues = normalizationMatrix;
+		
+	}
+
+	public void StoreBestNodesForRun(Integer[][] bestInputNodesForRun) {
+		for(int i = 0; i<numberOfNodes; i++)
+		{
+			for(int j = 0; j<numberOfInputNodes; j++)
+			{
+				bestInputNodesTotal[i][j] += bestInputNodesForRun[i][j];
+			}
+		}
 		
 	}
 
