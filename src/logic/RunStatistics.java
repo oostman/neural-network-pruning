@@ -5,8 +5,8 @@ public class RunStatistics {
 	public Integer[][] bestInputNodesTotal;
 	private double[] all_err;
 	private double[] all_err_test;
-	public double[] total_all_err;
-	public double[] total_all_err_test;
+	private double[] total_all_err;
+	private double[] total_all_err_test;
 	Integer numberOfNodes;
 	Integer numberOfInputNodes;
 	Integer numberOfRuns;
@@ -42,12 +42,12 @@ public class RunStatistics {
 		bestInputNodesTotal = new MatrixHelper().FillMatrix(numberOfNodes, numberOfInputNodes, 0);
 	}
 
-	public void StoreMinErrorFor(double err_min, int numberOfWeights) {
+	public void StoreBuildDataErrorFor(double err_min, int numberOfWeights) {
 		this.all_err[numberOfWeights - 1] = err_min;
 	}
 
 
-	public void StoreTestErrorFor(double testError, int numberOfWeights) {
+	public void StoreTestDataErrorFor(double testError, int numberOfWeights) {
 		this.all_err_test[numberOfWeights - 1] = testError;
 	}
 	
@@ -59,30 +59,11 @@ public class RunStatistics {
 		}
 	}
 	
-	public boolean IsFinnished()
-	{
-		return this.isFinnished;
-	}
-	
-	public void SetFinnished()
-	{
-		this.isFinnished = true;
-	}
-	
-	public void CancelRun()
-	{
-		this.progress = 0;
-		//TODO maybe to other stuff aswell
-	}
-
-	public double getRunProgress() {
-		return this.progress / (double) this.totalIterations;
-	}
-
-	public void IncrementProgress() {
-		this.progress++;
-		
-	}
+	public boolean IsFinnished() { return this.isFinnished; }
+	public void SetStatusFinnished() { this.isFinnished = true;	}
+	public void CancelRun()	{ this.progress = 0; }
+	public double getRunProgress() { return progress / (double) totalIterations; }
+	public void IncrementProgress() { progress++; }
 	
 	public void RevertNormalizeOnErrors(int V_tot)
 	{
@@ -107,20 +88,9 @@ public class RunStatistics {
 			
 	}
 	
-	private Double GetNormalizationMax(Integer index)
-	{
-		return normalizationValues[index][1];
-	}
-	
-	private Double GetNormalizationMin(Integer index)
-	{
-		return normalizationValues[index][0];
-	}
-
-	public void SetNormalizationMatrix(Double[][] normalizationMatrix) {
-		this.normalizationValues = normalizationMatrix;
-		
-	}
+	private Double GetNormalizationMax(Integer index) { return normalizationValues[index][1]; }	
+	private Double GetNormalizationMin(Integer index) {	return normalizationValues[index][0]; }
+	public void SetNormalizationMatrix(Double[][] normalizationMatrix) { this.normalizationValues = normalizationMatrix; }
 
 	public void StoreBestNodesForRun(Integer[][] bestInputNodesForRun) {
 		for(int i = 0; i<numberOfNodes; i++)
@@ -131,6 +101,14 @@ public class RunStatistics {
 			}
 		}
 		
+	}
+
+	public double[] GetMeanModelErrorForBuildData() {
+		return total_all_err;
+	}
+
+	public double[] GetMeanModelErrorForTestData() {
+		return total_all_err_test;
 	}
 
 }

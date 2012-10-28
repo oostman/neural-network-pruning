@@ -25,4 +25,17 @@ public class MatrixHelper {
 		}
 		return filledArray;
 	}
+		
+	/*
+	 * clones a matrix in a way that the second matrix does not point at the first one
+	 */
+	public Double[][] CloneMatrix(final Double[][] matrix, final int row, final int col){
+		Double[][] newMatrix = new Double[row][col];
+		for(Integer j=0; j<row; j++){
+			for(Integer i=0; i<col; i++){
+				newMatrix[j][i] = matrix[j][i];
+			}
+		}
+		return newMatrix;
+	}
 }

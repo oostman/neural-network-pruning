@@ -57,48 +57,28 @@ public class PruningController{
 	public void setNhid(int nhid) { neuralNetworkData.setNhid(nhid); }
 	public int getNin() { return neuralNetworkData.getNin(); }
 	
-	public double getBuildToTestRatio() {
-		return runMatrix.getBuildToTestRatio();
-	}
-	public void setBuildToTestRatio(double buildToTestRatio) {
-		runMatrix.setBuildToTestRatio(buildToTestRatio);
-	}
+	public double getBuildToTestRatio() { return runMatrix.getBuildToTestRatio(); }
+	public void setBuildToTestRatio(double buildToTestRatio) { runMatrix.setBuildToTestRatio(buildToTestRatio);	}
 
 	public double[] getTotal_all_err() { return pruningLogic.getTotal_all_err(); }
 	public double[] getTotal_all_err_test() { return pruningLogic.getTotal_all_err_test(); }
 	public boolean isFinnished() { return pruningLogic.IsFinnished(); }
 	
-	public int getNumberOfRuns() {
-		return numberOfRuns;
-	}
-	public void setNumberOfRuns(int _numberOfRuns) {
-		numberOfRuns = _numberOfRuns;
-	}
+	public int getNumberOfRuns() { return numberOfRuns;	}
+	public void setNumberOfRuns(int _numberOfRuns) { numberOfRuns = _numberOfRuns; }
 	
-	public double[][] getInputMatrix() {
-		return runMatrix.GetInputMatrix();
-	}
-	public double getA() {
-		return this.sampleProblemCreator.a;
-	}
-	public void setA(double a) {
-		this.sampleProblemCreator.a = a;
-	}
-	public double getB() {
-		return this.sampleProblemCreator.b;
-	}
-	public void setB(double b) {
-		this.sampleProblemCreator.b = b;
-	}
-	//returns the current progress status with 0 being 0% ready and 1 meaning 100% ready.
+	public double[][] getInputMatrix() { return runMatrix.GetInputMatrix();	}
+	public double getA() { return this.sampleProblemCreator.a; }
+	public void setA(double a) { this.sampleProblemCreator.a = a; }
+	public double getB() { return this.sampleProblemCreator.b; }
+	public void setB(double b) { this.sampleProblemCreator.b = b; }
+	
 	public double getProgress() { return pruningLogic.GetProgressInPercentage(); }
-	//cancel the pruning
+	
 	public void cancelPruning() {
 		pruningLogic.CancelRun();
 		System.out.println("\n Pruning was canceled");
 	}
-	public Integer[] getBestInputNodes(Integer numberOfWeightsLeft) {
-		return pruningLogic.BestInputNodesTotal(numberOfWeightsLeft);
-	}
+	public Integer[] getBestInputNodes(Integer numberOfWeightsLeft) { return pruningLogic.BestInputNodesTotal(numberOfWeightsLeft);	}
 	
 }

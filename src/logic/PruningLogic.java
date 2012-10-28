@@ -13,10 +13,11 @@ public class PruningLogic extends Thread{
 	
 	public PruningLogic(RunMatrix matrix, NeuralNetworkData nnData, Integer runs)
 	{
-		cancelPruning = false;
 		numberOfRuns = runs;
 		runMatrix = matrix;
 		neuralNetworkData = nnData;
+		
+		cancelPruning = false;
 		
 		neuralNetworkData.setNin(runMatrix.GetNumberOfVariables() - 1);
 	}
@@ -24,7 +25,6 @@ public class PruningLogic extends Thread{
 	public void run(){
 		cancelPruning = false;
 		System.out.println("start of the prunings");
-		//printMatrix(inputMatrix, N_tot, V_tot);
 		
 		//the errors for each pruning need to be initialized here since nhid/nin can change after the constructor
 		//the error at all_err[0] will be the error for one weight ... and so on
@@ -32,17 +32,14 @@ public class PruningLogic extends Thread{
 		runStatistics = new RunStatistics(neuralNetworkData.getNumberOfNodes(), neuralNetworkData.getNin(), numberOfRuns);
 		
 		for(int i = 0; i < numberOfRuns; i++){
-			//perform the pruning
 			perform_pruning(); 
-			//save the results
 			runStatistics.AddLastPruningRunToTotalStatistics();
 		}
 		
 		runStatistics.SetNormalizationMatrix(runMatrix.GetNormalizationMatrix());
 		runStatistics.RevertNormalizeOnErrors(runMatrix.GetNumberOfVariables());
 		
-		runStatistics.SetFinnished();
-
+		runStatistics.SetStatusFinnished();
 	}
 	
 	/*
@@ -54,8 +51,7 @@ public class PruningLogic extends Thread{
 		
 		Matrix YbMatrix = new Matrix(runMatrix.y_build);
 		
-		neuralNetworkData.Init();
-		
+		neuralNetworkData.Init();		
 		neuralNetworkData.CalculateHiddenNodesInputAndOutput(runMatrix.x_build, runMatrix.N_build);
 					
 		/*
@@ -66,7 +62,7 @@ public class PruningLogic extends Thread{
 		Integer[] nodes_left = new MatrixHelper().FillArray(neuralNetworkData.getNhid(),1);
 								
 		//number of weights in lower layer
-		int numberOfWeights = neuralNetworkData.getNumberOfNodes();
+		int numberOfWeightsLeft = neuralNetworkData.getNumberOfNodes();
 		
 		//err is the current error and err_min is the smallest error
 		double err_min, err;
@@ -75,7 +71,7 @@ public class PruningLogic extends Thread{
 		Matrix upperLayerWeights_min = null, upperLayerWeights = null;
 		
 		// the loop that eliminates the weights one at a time until there is only one weight left
-		while(numberOfWeights > 1){
+		while(numberOfWeightsLeft > 1){
 			
 			if(cancelPruning){
 				runStatistics.CancelRun();
@@ -97,10 +93,8 @@ public class PruningLogic extends Thread{
 					}else{							
 						runStatistics.IncrementProgress();
 						
-						neuralNetworkData.ResetWeightsAndHiddenLayerOutputs(runMatrix.N_build);
-																				
-						neuralNetworkData.PruneOneWeight(i,j);
-						
+						neuralNetworkData.ResetWeightsAndHiddenLayerOutputs(runMatrix.N_build);																				
+						neuralNetworkData.PruneOneWeight(i,j);						
 						neuralNetworkData.CalculateModifiedHiddenNodesOutput(runMatrix.x_build, runMatrix.N_build, i, j);
 												
 						//Solve the upper layer weights by least-squares. 
@@ -119,8 +113,8 @@ public class PruningLogic extends Thread{
 						/*
 						 * the residuals and error
 						 */
-						Matrix Y_hat = hiddenLayerOutput.times(upperLayerWeights);
-						err = ( YbMatrix.minus(Y_hat).norm2() ) /Math.sqrt(runMatrix.N_build);
+						Matrix Y_prediction = hiddenLayerOutput.times(upperLayerWeights);
+						err = ( YbMatrix.minus(Y_prediction).norm2() ) /Math.sqrt(runMatrix.N_build);
 						
 					}//else loop ends here
 					
@@ -133,34 +127,37 @@ public class PruningLogic extends Thread{
 					}
 				}
 			} //the "master" for loop ends
-			//one weight has been removed ...
-			numberOfWeights--;
 			
+			numberOfWeightsLeft--; 		//one weight has been removed ...
 			neuralNetworkData.RemoveWeight(i_min, j_min);
-			neuralNetworkData.SaveBestInputNodes(numberOfWeights); //belongs to statistics
-			
+			neuralNetworkData.SaveBestInputNodes(numberOfWeightsLeft); //belongs to statistics?
 			//test if there are any non-zero connections for the i_min:th hidden node
 			nodes_left[i_min] = testForNonZeroConnections(neuralNetworkData.weights_left, i_min);
 			
+			
 			//saves the error for each iteration, i.e. the removing of an weight
-			runStatistics.StoreMinErrorFor(err_min, numberOfWeights);
+			runStatistics.StoreBuildDataErrorFor(err_min, numberOfWeightsLeft);			
 			
-			/*
-			 * Evaluate the model on the test data //y_test = new double[N_test][nout]
-			 */
-			double[][] y_test_hat = modelOnTheTestData(runMatrix.N_test, neuralNetworkData.lowerWeights, nodes_left, upperLayerWeights_min, runMatrix.x_test);
-			
-			Matrix Y_test_hat = new Matrix(y_test_hat);
-			Matrix Y_test_matrix = new Matrix(runMatrix.y_test);
-			// should be saved as 0,1,2,3, ....
-			
-			double testError = ( Y_test_matrix.minus(Y_test_hat).norm2() ) /Math.sqrt(runMatrix.N_test);				
-			runStatistics.StoreTestErrorFor(testError, numberOfWeights);
+			double testError = ErrorForModelOnTestData(nodes_left, upperLayerWeights_min);				
+			runStatistics.StoreTestDataErrorFor(testError, numberOfWeightsLeft);
 			
 		}//the master while loop ends
 		
 		runStatistics.StoreBestNodesForRun(neuralNetworkData.bestInputNodesForRun);
-		// TODO: write status? System.out.println("one pruning is done progress: "+progress+"/"+totalIterations);
+	}
+
+	private double ErrorForModelOnTestData(Integer[] nodes_left, Matrix upperLayerWeights_min) {
+		/*
+		 * Evaluate the model on the test data //y_test = new double[N_test][nout]
+		 */
+		double[][] y_test_prediction = modelOnTheTestData(runMatrix.N_test, neuralNetworkData.lowerWeights, nodes_left, upperLayerWeights_min, runMatrix.x_test);
+		
+		Matrix Y_test_hat = new Matrix(y_test_prediction);
+		Matrix Y_test_matrix = new Matrix(runMatrix.y_test);
+		// should be saved as 0,1,2,3, ....
+		
+		double testError = ( Y_test_matrix.minus(Y_test_hat).norm2() ) / Math.sqrt(runMatrix.N_test);
+		return testError;
 	}
 	
 	/*
@@ -204,8 +201,8 @@ public class PruningLogic extends Thread{
 	}
 	
 	public void CancelRun()	{ cancelPruning = false; }	
-	public double[] getTotal_all_err() { return runStatistics.total_all_err; }	
-	public double[] getTotal_all_err_test() { return runStatistics.total_all_err_test; }	
+	public double[] getTotal_all_err() { return runStatistics.GetMeanModelErrorForBuildData(); }	
+	public double[] getTotal_all_err_test() { return runStatistics.GetMeanModelErrorForTestData(); }	
 	public boolean IsFinnished() { return runStatistics.IsFinnished(); }	
 	public double GetProgressInPercentage() { return runStatistics.getRunProgress(); }
 

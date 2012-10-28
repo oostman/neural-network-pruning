@@ -15,8 +15,8 @@ public class NeuralNetworkData {
 	public Double[][] lowerWeights;
 	public Double[][] pruningLowerWeights;
 	
-	public double[][] pruningHiddenLayerOutput;
-	public double[][] hiddenLayerOutput;
+	public Double[][] pruningHiddenLayerOutput;
+	public Double[][] hiddenLayerOutput;
 	public double[][] inputs;
 	public Integer[][] weights_left;
 	public Integer[][] bestInputNodesForRun;
@@ -30,44 +30,21 @@ public class NeuralNetworkData {
 		
 	}
 	
-	public void setNin(int _nin)
-	{
-		this.nin = _nin;
-	}
+	public void setNin(int _nin) { this.nin = _nin; }
+	public int getNin()	{ return this.nin; }
+	public int getNumberOfOutNodes() { return this.nout; }
+	public int getNhid() { return this.nhid; }	
+	public int setNhid(int _nhid) { return this.nhid = _nhid; }	
+	public int getNumberOfNodes() {	return this.nhid * this.nin - 1; }
 	
-	public int getNin()
-	{
-		return this.nin;
-	}
-	
-	public int getNumberOfOutNodes()
-	{
-		return this.nout;
-	}
-	
-	public int getNhid()
-	{
-		return this.nhid;
-	}
-	
-	public int setNhid(int _nhid)
-	{
-		return this.nhid = _nhid;
-	}
-	
-	public int getNumberOfNodes()
-	{
-		return this.nhid * this.nin - 1;
-	}
-
 	public void Init() {
 		//Setup the lower-layers weights as random gaussian values, with mean 1 and variance 2
 		this.lowerWeights = initWeights();
 		
-		this.weights_left = fillMatrix(this.nhid, this.nin, 1);
+		this.weights_left = new MatrixHelper().FillMatrix(this.nhid, this.nin, 1);
 		
 		//the best inputs nodes at all different weights left
-		this.bestInputNodesForRun = fillMatrix(this.getNumberOfNodes(), this.nin, 0);
+		this.bestInputNodesForRun = new MatrixHelper().FillMatrix(this.getNumberOfNodes(), this.nin, 0);
 		
 	}
 	
@@ -83,19 +60,15 @@ public class NeuralNetworkData {
 			}
 		}
 		
-		this.origLowerWeights = cloneMatrix(weights, this.nhid, this.nin + 1);
+		this.origLowerWeights = new MatrixHelper().CloneMatrix(weights, this.nhid, this.nin + 1);
 		return weights;
 	}
 	
-
 	public void RemoveWeight(int i, int j) {
 		this.lowerWeights[i][j] = 0.0; 		//removing the least helping weight
 		this.weights_left[i][j-1] = 0;
 	}
 	
-	/*
-	 * test if there are any non-zero connections for the i_min:th hidden node
-	 */
 	public void SaveBestInputNodes(int numberOfWeightsLeft){
 		for(Integer i = 0; i < nin; i++){
 			for(Integer j = 0; j < nhid; j++){
@@ -112,7 +85,7 @@ public class NeuralNetworkData {
 	 */
 	public void CalculateHiddenNodesInputAndOutput(double[][] x_build, int N_build){
 		this.inputs = new double[N_build][this.nhid];
-		this.hiddenLayerOutput = new double[N_build][nhid + 1];
+		this.hiddenLayerOutput = new Double[N_build][nhid + 1];
 		
 		for(Integer i = 0; i<N_build; i++){
 			this.hiddenLayerOutput[i][0] = 1.0;	//bias
@@ -139,44 +112,6 @@ public class NeuralNetworkData {
 			this.pruningHiddenLayerOutput[k][i+1] = 1/(1+Math.exp(-input_new[k][i]));
 		}
 	}
-	
-	/*
-	 * Fills a matrix with the preferred value
-	 */
-	protected Integer[][] fillMatrix(final int row, final int col, final int value){
-		Integer[][] filledMatrix = new Integer[row][col];
-		for(Integer i = 0; i<row; i++){
-			for(Integer j = 0; j < col; j++){
-				filledMatrix[i][j] = value;
-			}
-		}
-		return filledMatrix;
-	}
-	
-	/*
-	 * clones a matrix in a way that the second matrix does not point at the first one
-	 */
-	private Double[][] cloneMatrix(final Double[][] matrix, final int row, final int col){
-		Double[][] newMatrix = new Double[row][col];
-		for(Integer j=0; j<row; j++){
-			for(Integer i=0; i<col; i++){
-				newMatrix[j][i] = matrix[j][i];
-			}
-		}
-		return newMatrix;
-	}
-	/*
-	 * clones a matrix in a way that the second matrix does not point at the first one
-	 */
-	private double[][] cloneMatrix(final double[][] matrix, final int row, final int col){
-		double[][] newMatrix = new double[row][col];
-		for(Integer j=0; j<row; j++){
-			for(Integer i=0; i<col; i++){
-				newMatrix[j][i] = matrix[j][i];
-			}
-		}
-		return newMatrix;
-	}
 
 	public boolean IsWeightAlreadyEliminated(Integer i, Integer j) {
 		return this.lowerWeights[i][j] == 0;
@@ -188,8 +123,8 @@ public class NeuralNetworkData {
 	}
 
 	public void ResetWeightsAndHiddenLayerOutputs(int N_build) {
-		this.pruningLowerWeights = cloneMatrix(this.lowerWeights, this.getNhid(), this.getNin() + 1);
-		this.pruningHiddenLayerOutput = cloneMatrix(this.hiddenLayerOutput, N_build, this.getNhid() + 1);
+		this.pruningLowerWeights = new MatrixHelper().CloneMatrix(this.lowerWeights, this.getNhid(), this.getNin() + 1);
+		this.pruningHiddenLayerOutput = new MatrixHelper().CloneMatrix(this.hiddenLayerOutput, N_build, this.getNhid() + 1);
 		
 	}
 
@@ -204,7 +139,7 @@ public class NeuralNetworkData {
 	 * Removes the "dead" columns from the Hidden node outputs, 
 	 * i.e. if one node is eliminated the input matrix should be one column smaller
 	 */
-	protected double[][] RemoveDeadColsHidNodesOutput(double[][] hidNodOutput, Double[][] www, int N_build){
+	private double[][] RemoveDeadColsHidNodesOutput(Double[][] hidNodOutput, Double[][] www, int N_build){
 		int helthyColNode = numberOfHealthyRows(this.pruningLowerWeights);
 		double[][] sss = new double[N_build][helthyColNode + 1]; //helthyColNode + 1, since my hidNodOutput includes an bias column
 		
@@ -228,7 +163,7 @@ public class NeuralNetworkData {
 	/*
 	 * Calculates how many healthy rows there are in www
 	 */
-	protected int numberOfHealthyRows(Double[][] www){
+	private int numberOfHealthyRows(Double[][] www){
 		int tempsize = 0;
 		for(Integer k = 0; k < this.nhid; k++){
 			for(Integer l = 1; l<this.nin + 1; l++){				// l = 0 zero is the bias
