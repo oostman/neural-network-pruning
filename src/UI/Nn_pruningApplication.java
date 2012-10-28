@@ -1,7 +1,7 @@
 package UI;
 
 
-import logic.pruning_logic;
+import logic.PruningController;
 
 import com.vaadin.Application;
 import com.vaadin.ui.Window;
@@ -14,7 +14,7 @@ public class Nn_pruningApplication extends Application {
 		
 		Window mainWindow = new Window("Nn_pruning Application");
 
-		VaadinComposite mycomposite = new VaadinComposite(new pruning_logic());
+		VaadinComposite mycomposite = new VaadinComposite(new PruningController());
 		
 		mainWindow.addComponent(mycomposite);
 		mainWindow.getContent().setSizeFull();

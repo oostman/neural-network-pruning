@@ -159,6 +159,11 @@ public class RunMatrix {
 		return this.normalizationValues;
 	}
 	
-	
+	public double getBuildToTestRatio() {
+		return buildToTestRatio;
+	}
+	public void setBuildToTestRatio(double _buildToTestRatio) {
+		buildToTestRatio = _buildToTestRatio;
+	}
 
 }

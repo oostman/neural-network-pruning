@@ -14,4 +14,15 @@ public class MatrixHelper {
 		}
 		return filledMatrix;
 	}
+	
+	/*
+	 * Fills a array with the preferred value
+	 */
+	public Integer[] FillArray(final int length, final int value){
+		Integer[] filledArray = new Integer[length];
+		for(Integer i = 0; i<length; i++){
+			filledArray[i] = value;
+		}
+		return filledArray;
+	}
 }
